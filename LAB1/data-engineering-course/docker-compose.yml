@@ -1,0 +1,24 @@
+services:
+  spark-master:
+    image: apache/spark:3.5.3
+    container_name: spark-master
+    command: ["/bin/sh", "-c", "/opt/spark/bin/spark-class org.apache.spark.deploy.master.Master --host spark-master --port 7077 --webui-port 8080"]
+    environment:
+      - SPARK_MASTER_HOST=spark-master
+    ports:
+      - "8082:8080"   
+      - "7077:7077"
+    restart: unless-stopped
+
+  spark-worker:
+    image: apache/spark:3.5.3
+    container_name: spark-worker
+    depends_on:
+      - spark-master
+    command: ["/bin/sh", "-c", "/opt/spark/bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077 --webui-port 8081"]
+    environment:
+      - SPARK_WORKER_MEMORY=1G
+      - SPARK_WORKER_CORES=2
+    ports:
+      - "8083:8081"   
+    restart: unless-stopped
