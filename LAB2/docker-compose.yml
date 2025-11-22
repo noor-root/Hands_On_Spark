@@ -1,0 +1,43 @@
+services:
+  spark-master:
+    image: apache/spark:3.5.3
+    container_name: spark-master
+    hostname: spark-master
+    restart: unless-stopped
+    ports:
+      - "7077:7077"   # Spark master RPC
+      - "8080:8080"   # Spark master UI
+    command: ["/bin/bash", "-c", "/opt/spark/sbin/start-master.sh && tail -f /dev/null"]
+    volumes:
+      - ./spark-data:/opt/spark/data
+
+  spark-worker:
+    image: apache/spark:3.5.3
+    container_name: spark-worker
+    hostname: spark-worker
+    restart: unless-stopped
+    depends_on:
+      - spark-master
+    environment:
+      - SPARK_MASTER_URL=spark://spark-master:7077
+      - SPARK_WORKER_MEMORY=2g
+      - SPARK_WORKER_CORES=2
+    command: ["/bin/bash", "-c", "/opt/spark/sbin/start-worker.sh spark://spark-master:7077 && tail -f /dev/null"]
+    ports:
+      - "8081:8081"
+    volumes:
+      - ./spark-data:/opt/spark/data
+
+  jupyter:
+    image: jupyter/pyspark-notebook:latest
+    container_name: spark-jupyter
+    restart: unless-stopped
+    ports:
+      - "8888:8888"
+    environment:
+      - SPARK_MASTER=spark://spark-master:7077
+    volumes:
+      - ./notebooks:/home/jovyan/work
+      - ./spark-data:/opt/spark/data
+    depends_on:
+      - spark-master
